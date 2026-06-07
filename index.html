@@ -19,6 +19,20 @@
             font-family: Helvetica, sans-serif;
             color: white;
             overflow: hidden;
+            position: relative;
+        }
+
+        /* Div de Overlay para controlar o brilho/luminosidade do fundo */
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
         }
 
         .main-container {
@@ -27,6 +41,8 @@
             gap: 1rem;
             width: min(92vw, 960px);
             padding-top: 35vh;
+            position: relative;
+            z-index: 1; /* Garante que fica acima do overlay */
         }
 
         .main-time-container {
@@ -145,6 +161,7 @@
             top: 0;
             right: 0;
             padding: 1rem;
+            z-index: 2; /* Garante que fica interativo acima do overlay */
         }
 
         .hidden {
@@ -162,6 +179,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 10; /* Garante que fica acima de tudo */
         }
 
         .settings-panel {
@@ -237,6 +255,32 @@
         .settings-form-container input[type="file"] {
             width: 100%;
             color: #404866;
+        }
+
+        /* Estilização personalizada para inputs de range (sliders) */
+        .settings-form-container input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #cfd5e4;
+            outline: none;
+        }
+
+        .settings-form-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #315fda;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .settings-form-container input[type="range"]::-webkit-slider-thumb:hover {
+            background: #204cbd;
         }
 
         .settings-actions {
@@ -336,7 +380,6 @@
             gap: 0.5rem;
             width: 100%;
             justify-content: center;
-            /* margin-top: -1rem; */
         }
 
         .pinned-item-card{
@@ -358,6 +401,9 @@
     </style>
 </head>
 <body>
+    <!-- Overlay Div para manipulação da luminosidade -->
+    <div class="background-overlay" id="background-overlay"></div>
+
     <div class="main-container">
         <div class="main-time-container" id="time-container"></div>
 
@@ -424,6 +470,15 @@
             document.body.style.background = `url("${safeUrl}") center/cover no-repeat`;
         };
 
+        // Aplica a opacidade no overlay baseado na luminosidade (Padrão: 95% Luminoso -> 5% Opacidade preta)
+        const applyLuminosity = (value) => {
+            const overlay = document.getElementById('background-overlay');
+            if (overlay) {
+                const opacity = (100 - value) / 100;
+                overlay.style.opacity = opacity;
+            }
+        };
+
         const reload = () => {
             location.reload()
         }
@@ -479,6 +534,7 @@
             const config = readLocalStorage();
             const feeds = config.rssFeed || [];
             const pinned = config.pinned || [];
+            const luminosity = config.luminosity !== undefined ? config.luminosity : 95;
 
             const rssFeedHtml = feeds.length > 0 
                 ? feeds.map((feed, index) => `
@@ -515,6 +571,17 @@
                                 <button type='submit' class='btn btn-primary'>Save search</button>
                             </div>
                         </form>
+                        
+                        <!-- Nova Configuração: Slider de Luminosidade -->
+                        <div class='settings-section'>
+                            <h3>Background Luminosity</h3>
+                            <p>Adjust the brightness of your background image or gradient.</p>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                                <input id='bg-luminosity-slider' type='range' min='0' max='100' value='${luminosity}' style="flex-grow: 1;"/>
+                                <span id='bg-luminosity-value' style="font-weight: bold; width: 4ch; text-align: right; color: #161927;">${luminosity}%</span>
+                            </div>
+                        </div>
+
                         <form id='submit-background-url' class='settings-section'>
                             <h3>Background URL</h3>
                             <p>Paste an image URL to apply to the startpage background.</p>
@@ -570,6 +637,24 @@
             }
 
             let uploadedBase64 = '';
+
+            // Event Listener do Slider de Luminosidade
+            const luminositySlider = document.getElementById('bg-luminosity-slider');
+            const luminosityValueSpan = document.getElementById('bg-luminosity-value');
+            if (luminositySlider && luminosityValueSpan) {
+                luminositySlider.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    luminosityValueSpan.textContent = `${val}%`;
+                    
+                    // Aplica ao overlay imediatamente para feedback visual em tempo real
+                    applyLuminosity(val);
+                    
+                    // Salva a preferência
+                    const currentConfig = readLocalStorage();
+                    currentConfig.luminosity = parseInt(val, 10);
+                    writeLocalStorage(currentConfig);
+                });
+            }
 
             document.getElementById('submit-search-engine').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -646,15 +731,10 @@
             document.getElementById('pin-url').addEventListener('change', async (e) => {
 
                 async function getFavicon(targetUrl) {
-                    // Proxy para evitar erro de CORS em localhost
                     const proxy = 'https://corsproxy.io/?';
                     
                     try {
-                        // 1. Busca o HTML do site (o proxy segue redirecionamentos automaticamente)
                         const response = await fetch(proxy + encodeURIComponent(targetUrl));
-                        
-                        // Pega a URL final após redirecionamentos (fornecida pelo proxy ou pela resposta)
-                        // Alguns proxies injetam o cabeçalho da URL final
                         const finalUrl = response.url.includes('corsproxy.io') 
                         ? targetUrl 
                         : response.url;
@@ -663,20 +743,15 @@
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, 'text/html');
 
-                        // 2. Procura o ícone no HTML
                         const link = doc.querySelector('link[rel*="icon"]');
                         let faviconUrl;
 
                         if (link && link.getAttribute('href')) {
-                        // Resolve caminhos relativos baseando-se na URL final (pós-redirecionamento)
-                        faviconUrl = new URL(link.getAttribute('href'), finalUrl).href;
+                            faviconUrl = new URL(link.getAttribute('href'), finalUrl).href;
                         } else {
-                        // Fallback: tenta o padrão /favicon.ico na raiz do domínio final
-                        faviconUrl = `${new URL(finalUrl).origin}/favicon.ico`;
+                            faviconUrl = `${new URL(finalUrl).origin}/favicon.ico`;
                         }
 
-                        // 3. Validação: Opcional, faz um check rápido para ver se a imagem existe
-                        // (Útil porque às vezes o link no HTML está quebrado)
                         return faviconUrl;
 
                     } catch (error) {
@@ -726,7 +801,14 @@
 
         const setup = async () => {
             bindSearchForm('search-form');
-            applyBackgroundImage(readLocalStorage().backgroundImage);
+            
+            const config = readLocalStorage();
+            applyBackgroundImage(config.backgroundImage);
+            
+            // Carrega e aplica a luminosidade salva, ou usa 95 como padrão
+            const luminosity = config.luminosity !== undefined ? config.luminosity : 95;
+            applyLuminosity(luminosity);
+
             await loadFeeds();
             loadTime();
         };
