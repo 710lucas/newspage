@@ -421,7 +421,7 @@
                 return;
             }
             const safeUrl = imageSource.replace(/["\\\n\r]/g, '');
-            document.body.style.background = `linear-gradient(rgba(6, 8, 18, 0.55), rgba(6, 8, 18, 0.7)), url("${safeUrl}") center/cover no-repeat`;
+            document.body.style.background = `url("${safeUrl}") center/cover no-repeat`;
         };
 
         const reload = () => {
