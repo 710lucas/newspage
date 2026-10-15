@@ -8,6 +8,9 @@ blocks inline scripts and handlers). If you change `index.html`, port the change
 
 ## Install
 
+A ready-to-load zip is attached to each [release](https://github.com/710lucas/newspage/releases);
+unzip it and follow the steps below, selecting the unzipped folder instead of this one.
+
 **Chrome / Edge / Brave:** open `chrome://extensions`, enable *Developer mode*, click
 *Load unpacked* and select this `extension` folder.
 

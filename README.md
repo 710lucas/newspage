@@ -31,6 +31,14 @@ Access the hosted version at: `https://710lucas.github.io/RSS-startpage/`
    `git clone https://github.com/710lucas/RSS-startpage.git`
 2. Open `index.html` in any modern web browser.
 
+### Option 3: Browser Extension (new tab page)
+Makes the startpage open on every new tab.
+1. Download `rss-startpage-extension.zip` from the [latest release](https://github.com/710lucas/newspage/releases/latest) and unzip it.
+2. **Chrome / Edge / Brave:** open `chrome://extensions`, enable *Developer mode*, click *Load unpacked* and select the unzipped folder.
+3. **Firefox:** open `about:debugging#/runtime/this-firefox`, click *Load Temporary Add-on* and select `manifest.json` (it stays loaded until the browser restarts).
+
+The extension keeps its own settings, separate from the hosted version. See [`extension/README.md`](extension/README.md) for details.
+
 ## Customization
 
 Click the gear icon in the top-right corner to open the Settings menu:
