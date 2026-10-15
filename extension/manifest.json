@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "RSS Startpage",
+  "version": "1.0.0",
+  "description": "Replaces the new tab page with the RSS startpage.",
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  }
+}
